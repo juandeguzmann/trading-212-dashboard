@@ -41,7 +41,7 @@ class Trading212Client:
         data = response.json()
         return data
     
-    def get_individual_paid_out_divedends(self, ticker: str):
+    def get_individual_paid_out_dividends(self, ticker: str):
         url = f"{self.base_url}/history/dividends"
         query = {
         "cursor": "0",
