@@ -56,3 +56,32 @@ class Trading212Client:
         
         data = response.json()
         return data
+    
+    def get_dividends(self):
+        url = f"{self.base_url}/history/dividends"
+        dividends = {'items': [], 'nextPagePath': ""}
+        while True:
+            if len(dividends["items"]) == 0: 
+                query = {"cursor": "", "ticker": "", "limit": "50"}
+            else: 
+                query = {"cursor": f"{dividends['nextPagePath']}", "ticker": "", "limit": "50"}
+            try:
+                response = requests.get(url, headers=self.headers, params=query)
+                response = response.json()
+            except requests.exceptions.RequestException as e:
+                raise SystemExit(e)
+            
+            if 'errorMessage' in response:
+                print(f"Error fetching dividends: {response['errorMessage']}")
+                errorMessage = response['errorMessage']
+                print(errorMessage)
+                time.sleep(30)
+                response = requests.get(url, headers=self.headers, params=query)
+                response = response.json()
+
+            dividends['items'].extend(response['items'])
+            if response['nextPagePath'] is not None:
+                dividends.update({'nextPagePath': response['nextPagePath'].split('=')[2]})
+            else:
+                break
+        return dividends["items"]

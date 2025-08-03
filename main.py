@@ -3,6 +3,7 @@ import pandas as pd
 import requests
 import streamlit as st
 from api_client import Trading212Client
+from dateutil import parser
 
 from utils import transform_positions, format_dividends_for_display
 
@@ -51,6 +52,39 @@ def main():
             st.bar_chart(monthly)
         else:
             st.info("No dividend data available for this instrument.")
+
+        # --- Total Dividends by Month (All Tickers) ---
+        st.markdown("### Total Dividends by Month (All Tickers)")
+
+        @st.cache_data(show_spinner=False)
+        def get_all_dividends(api_key):
+            client = Trading212Client(api_key)
+            return client.get_dividends()
+
+        dividends = get_all_dividends(api_key)
+
+        if isinstance(dividends, dict) and 'items' in dividends:
+            data = dividends['items']
+        else:
+            data = dividends
+
+        df = pd.DataFrame(data)
+
+        def parse_paid_on(date_str):
+            try:
+                return parser.parse(date_str)
+            except Exception:
+                return pd.NaT
+
+        if not df.empty and 'paidOn' in df.columns and 'amount' in df.columns:
+            df['paidOn'] = df['paidOn'].apply(parse_paid_on)
+            df['month'] = df['paidOn'].apply(lambda x: x.strftime('%Y-%m') if pd.notnull(x) else None)
+            monthly_dividends = df.groupby('month')['amount'].sum().reset_index()
+            monthly_dividends['month'] = pd.to_datetime(monthly_dividends['month'])
+            monthly_dividends = monthly_dividends.set_index('month')
+            st.bar_chart(monthly_dividends)
+        else:
+            st.info("No dividend data available for your account.")
 
         # Show positions only once, not on every instrument change
         df = transform_positions(st.session_state["positions"], instrument_list)
