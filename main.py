@@ -31,7 +31,6 @@ def main():
         selected_ticker = st.selectbox("Select Instrument", options=list(instrument_options.keys()))
         selected_instrument = instrument_options[selected_ticker]
 
-        # Only fetch dividends for the selected instrument
         client = Trading212Client(api_key)
         dividends = client.get_individual_paid_out_dividends(selected_instrument)
         st.subheader(f"Paid Dividends for {selected_instrument}")
@@ -39,7 +38,6 @@ def main():
         total_dividends = sum(list_amount)
         st.write(total_dividends)
 
-        # --- Dividends by Month Chart ---
         st.markdown("#### Dividends by Month")
         if dividends['items']:
             df_div = pd.DataFrame(dividends['items'])
@@ -53,9 +51,7 @@ def main():
         else:
             st.info("No dividend data available for this instrument.")
 
-        # --- Total Dividends by Month (All Tickers) ---
         st.markdown("### Total Dividends by Month (All Tickers)")
-
         @st.cache_data(show_spinner=False)
         def get_all_dividends(api_key):
             client = Trading212Client(api_key)
@@ -86,7 +82,6 @@ def main():
         else:
             st.info("No dividend data available for your account.")
 
-        # Show positions only once, not on every instrument change
         df = transform_positions(st.session_state["positions"], instrument_list)
         st.subheader("Portfolio Positions")
         st.dataframe(df, use_container_width=True)
