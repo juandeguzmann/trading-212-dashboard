@@ -15,10 +15,12 @@ class Trading212Client:
         url = f"{self.base_url}/equity/metadata/instruments"
 
         max_retries = 5
-        retry_delay = 20  # seconds
+        retry_delay = 60  # seconds
 
         for attempt in range(1, max_retries + 1):
             response = requests.get(url, headers=self.headers)
+
+            print(f"response.status_code: {response.status_code}")
 
             if response.status_code == 200:
                 instruments = response.json()
@@ -72,10 +74,9 @@ class Trading212Client:
                 raise SystemExit(e)
             
             if 'errorMessage' in response:
-                print(f"Error fetching dividends: {response['errorMessage']}")
                 errorMessage = response['errorMessage']
                 print(errorMessage)
-                time.sleep(30)
+                time.sleep(61)
                 response = requests.get(url, headers=self.headers, params=query)
                 response = response.json()
 
@@ -85,3 +86,32 @@ class Trading212Client:
             else:
                 break
         return dividends["items"]
+    
+    def get_historical_order_data(self, ticker: str):
+        url = f"{self.base_url}/equity/history/orders"
+        all_orders = []
+        cursor = "0"
+        print(f"ticker: {ticker}")
+        while True:
+            query = {
+                "cursor": cursor,
+                "ticker": f"{ticker}",
+                "limit": "50"
+            }
+            response = requests.get(url, headers=self.headers, params=query)
+            if response.status_code != 200:
+                print(f"Error fetching historical order data: {response.status_code}")
+                break
+            data = response.json()
+            print(f"data: {data}")
+            if 'items' in data:
+                all_orders.extend(data['items'])
+            else:
+                break
+            # Check for nextPagePath for pagination
+            next_page = data.get('nextPagePath')
+            if next_page:
+                cursor = next_page.split('=')[2]
+            else:
+                break
+        return all_orders
